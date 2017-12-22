@@ -2,6 +2,8 @@
 
 #### Unofficial Electroneum GUI Wallet
 
+Fee: 0.20%
+
 ## To-Do List
 * GUI Wallet
   * Styling
