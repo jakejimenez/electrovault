@@ -118,8 +118,35 @@ export default {
       self.installSteps[0].pending = true;
       if (require('os').platform() == 'linux') {
         var mkdir = 'mkdir -p ' + require('os').homedir() + '/electroneum'
-
+        cmd.get(mkdir, function(err, data, stderr) {
+          if (!err) {
+            self.installSteps[0].success = true;
+            self.checkComplete()
+            console.log('ElectroVault Install: Created folder at: ' + require("os").homedir() + '/electroneum')
+          } else {
+            self.installSteps[0].pending = false;
+            self.installSteps[0].error = true;
+            console.log('error', err);
+          }
+        })
+      } else if (require('os').platform() == 'win32') {
+        const path = require('path');
+        const targetDir = require('os').homedir() + '\\electroneum';
+        const sep = path.sep;
+        const initDir = path.isAbsolute(targetDir) ? sep : '';
+        targetDir.split(sep).reduce((parentDir, childDir) => {
+          const curDir = path.resolve(parentDir, childDir);
+          if (!fs.existsSync(curDir)) {
+            fs.mkdirSync(curDir)
+          }
+          console.log('ElectroVault Install: Created folder at: ' + targetDir);
+          self.installSteps[0].success = true;
+          return curDir
+        }, initDir)
       }
+
+      self.installSteps[1].pending = true;
+      var platform = require('os').platform();
     },
 
     mounted: function() {
