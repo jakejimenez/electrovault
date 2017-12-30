@@ -5,6 +5,9 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
+// Deprecated
+src_deprecated
+
 # Runtime data
 pids
 *.pid
