@@ -5,9 +5,11 @@
 
 ## To-Do List
 * GUI Wallet
-  * Styling
-  * Navigation
-  * Pages
-  * JS Wallet Integration
-* JavaScript Wallet
-* Remote Blockchain RPC Server
+  * ~~Landing Page~~
+  * Installation Page
+    * Filesystem Setup
+    * Electroneum Download
+    * Unzipping and configuration
+    * Final Touches
+  * Wallet Page
+* ~~JavaScript Wallet API~~
