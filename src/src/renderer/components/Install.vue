@@ -167,11 +167,13 @@ export default {
           console.log("Starting download...");
           self.download(windl, coreDir);
           self.downloadsWindows[0].finished = true;
+          self.installSteps[1].success = true;
         } else if (arch == 'x86' || arch == 'x32' && self.installSteps[0].error != true) {
           var windl = self.downloadsWindows[1].url;
           console.log("Starting download...");
           self.download(windl, coreDir);
           self.downloadsWindows[1].finished = true;
+          self.installSteps[1].success = true;
         }
       } else {
         console.log("Skipping download...")
@@ -182,14 +184,16 @@ export default {
       }
 
       // Unzip Electroneum daemon and files
-      console.log("Unzipping...")
-      self.installSteps[2].pending = true;
-      fs.createReadStream(coreDir).pipe(unzip.Extract({
-        path: electroDir
-      }));
-
-      self.installSteps[2].success = true;
-      self.checkComplete();
+      var stepOne = self.installSteps[1].success;
+      if (stepOne == true) {
+        console.log("Unzipping...")
+        self.installSteps[2].pending = true;
+        fs.createReadStream(coreDir).pipe(unzip.Extract({
+          path: electroDir
+        }));
+        self.installSteps[2].success = true;
+        self.checkComplete();
+      }
 
     }
   },
