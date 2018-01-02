@@ -137,22 +137,36 @@ export default {
           self.checkComplete();
         });
     },
-
     startInstall() {
       var self = this;
       var electroDir = require('os').homedir() + '\\Desktop\\electrovault_wallet';
       var coreDir = require('os').homedir() + '\\Desktop\\electrovault_wallet\\core.zip';
+      var walletsDir = electroDir + '\\wallets';
       var arch = require('os').arch();
 
       // Create Electroneum directory
       self.installSteps[0].pending = true;
       if (!fs.existsSync(electroDir)) {
-        console.log("Creating directory...");
+        console.log("Creating main directory...");
         fs.mkdirSync(electroDir);
+        if(!fs.existsSync(walletsDir)) {
+          console.log("Creating wallets directory...");
+          fs.mkdirSync(walletsDir);
+          self.installSteps[0].success = true;
+          self.checkComplete();
+        } else {
+          self.installSteps[0].success = true;
+          self.checkComplete();
+        }
         self.installSteps[0].success = true;
         self.checkComplete();
-      } else if (fs.existsSync(electroDir)) {
-        console.log("Skipping directory...");
+      } else if(!fs.existsSync(walletsDir)) {
+        console.log("Creating wallets directory...");
+        fs.mkdirSync(walletsDir);
+        self.installSteps[0].success = true;
+        self.checkComplete();
+      } else if (fs.existsSync(electroDir) && fs.existsSync(walletsDir)) {
+        console.log("Skipping directories...");
         self.installSteps[0].success = true;
       } else {
         alert('Please remove the current electrovault directory located at: "' + electroDir + '" and try again.')
@@ -167,13 +181,11 @@ export default {
           console.log("Starting download...");
           self.download(windl, coreDir);
           self.downloadsWindows[0].finished = true;
-          self.installSteps[1].success = true;
         } else if (arch == 'x86' || arch == 'x32' && self.installSteps[0].error != true) {
           var windl = self.downloadsWindows[1].url;
           console.log("Starting download...");
           self.download(windl, coreDir);
           self.downloadsWindows[1].finished = true;
-          self.installSteps[1].success = true;
         }
       } else {
         console.log("Skipping download...")
@@ -187,6 +199,7 @@ export default {
       var stepOne = self.installSteps[1].success;
       if (stepOne == true) {
         console.log("Unzipping...")
+        console.log("Target :: " + electroDir)
         self.installSteps[2].pending = true;
         fs.createReadStream(coreDir).pipe(unzip.Extract({
           path: electroDir
@@ -194,7 +207,6 @@ export default {
         self.installSteps[2].success = true;
         self.checkComplete();
       }
-
     }
   },
   mounted: function() {
