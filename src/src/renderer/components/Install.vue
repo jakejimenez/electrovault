@@ -18,10 +18,10 @@
           </li>
         </ul>
         <div v-if="installDone === true">
-          <router-link class="button primary" to="/wallet" style="font-weight: 600;">Launch HushNG</router-link><br><br>
+          <router-link class="button primary" to="/wallet" style="font-weight: 600;">Launch ElectroVault</router-link><br><br>
         </div>
         <div v-else>
-          <button class="button button-info">Cancel setup</button><br><br>
+          <button @click="close" class="button button-info">Cancel setup</button><br><br>
         </div>
       </div>
     </div>
@@ -32,128 +32,170 @@
 <script>
 import SystemInformation from './LandingPage/SystemInformation'
 
-var https = require('https')
-var fs = require('fs')
-var path = require('path')
-var cmd = require('node-cmd')
-var store = require('store')
+var fs = require('fs');
+var path = require('path');
+var cmd = require('node-cmd');
+var store = require('store');
+var request = require('request');
+var unzip = require('unzip');
+
+const remote = require('electron').remote
 
 export default {
   name: 'install',
   components: {
     SystemInformation
   },
-  data () {
+  data() {
     return {
-      installSteps: [
-        {'title': 'Setting up filesystem', 'pending': false, 'error': false, 'success': false},
-        {'title': 'Downloading Electroneum', 'pending': false, 'error': false, 'success': false},
-        {'title': 'Generating config files', 'pending': false, 'error': false, 'success': false }
+      installSteps: [{
+          'title': 'Setting up filesystem',
+          'pending': false,
+          'error': false,
+          'success': false
+        },
+        {
+          'title': 'Downloading Electroneum',
+          'pending': false,
+          'error': false,
+          'success': false
+        },
+        {
+          'title': 'Unzipping and setting some small things up',
+          'pending': false,
+          'error': false,
+          'success': false
+        },
+        {
+          'title': 'Finishing final touches',
+          'pending': false,
+          'error': false,
+          'success': false
+        }
       ],
-      downloadsLinux: [
-        {'component': 'full', 'url': 'https://github.com/electroneum/electroneum/releases/download/v0.11.0.0/linux-x64-0.11.0.0.zip', 'finished': false},
-      ],
-      downloadsWindows: [
-        {'component': 'full_64', 'url': 'https://github.com/electroneum/electroneum/releases/download/v0.11.0.0/win-x64-0.11.0.0.zip', 'finished': false},
-        {'component': 'full_86', 'url': 'https://github.com/electroneum/electroneum/releases/download/v0.11.0.0/win-x86-0.11.0.0.zip', 'finished': false}
+      downloadsLinux: [{
+        'component': 'linux-x64',
+        'url': 'https://github.com/electroneum/electroneum/releases/download/v0.11.0.0/linux-x64-0.11.0.0.zip',
+        'finished': false
+      }, ],
+      downloadsWindows: [{
+          'component': 'win-x64',
+          'url': 'https://github.com/electroneum/electroneum/releases/download/v0.11.0.0/win-x64-0.11.0.0.zip',
+          'finished': false
+        },
+        {
+          'component': 'win-x86',
+          'url': 'https://github.com/electroneum/electroneum/releases/download/v0.11.0.0/win-x86-0.11.0.0.zip',
+          'finished': false
+        }
       ],
       downloadsMac: [
 
       ],
       complete: -1,
-      installDone: false
+      installDone: false,
+      w: remote.getCurrentWindow()
     }
-  }
+  },
   methods: {
+
+    // Open a link externally (Default, not really needed)
     open(link) {
       this.$electron.shell.openExternal(link);
     },
 
+    // Closes Electron Application
+    close() {
+      this.w.close();
+    },
+
+    // Check if setup is complete.
     checkComplete() {
       var self = this;
 
-      if (self.installSteps[0].success == true && self.installSteps[1].success == true && self.installSteps[2].success == true) {
+      if (self.installSteps[0].success == true && self.installSteps[1].success == true && self.installSteps[2].success == true && self.installSteps[3].success == true) {
         store.set('setupComplete', true);
         self.installDone = true;
       }
     },
 
-    download(url, dest, platform, count) {
-      var file = fs.createWriteStream(dest, {encoding: 'binary'});
+    // No linux or mac support as of yet.
+    download(url, outputFile) {
       var self = this;
-      var request = https.get(url, function(response) {
-        response.pipe(file);
-        file.on('finish', function() {
-          file.end(function() {
-            file.close();
-          })
+      self.installSteps[1].pending = true;
+
+      request(url)
+        .pipe(fs.createWriteStream(outputFile))
+        .on('error', function(err) {
+          self.installSteps[1].error = true;
+          self.installSteps[1].pending = false;
         })
-      }).on('close', function() {
-        console.log('Downloaded: ' + url);
-        if (platform == 'linux') {
-          self.downloadsLinux[count].finished = true;
-          console.log(self.downloadsLinux[count].finished)
-          for (var i = 0; i < self.downloadsLinux.length; i++) {
-            if (self.downloadsLinux.finished == true) {
-              self.complete++;
-              console.log(self.complete);
-              if (self.downloadsLinux.length == self.complete) {
-                self.installSteps[1].success = true;
-                self.checkComplete();
-              }
-            }
-          }
-        }
-      }).on('error', function(err) {
-        fs.unlink(dest);
-        self.installSteps[1].pending = false;
-        self.installSteps[1].error = true;
-        console.log(err.message);
-      })
+        .on('close', function() {
+          self.installSteps[1].error = false;
+          self.installSteps[1].pending = false;
+          self.installSteps[1].success = true;
+          self.checkComplete();
+        });
     },
 
     startInstall() {
       var self = this;
+      var electroDir = require('os').homedir() + '\\Desktop\\electrovault_wallet';
+      var coreDir = require('os').homedir() + '\\Desktop\\electrovault_wallet\\core.zip';
+      var arch = require('os').arch();
 
+      // Create Electroneum directory
       self.installSteps[0].pending = true;
-      if (require('os').platform() == 'linux') {
-        var mkdir = 'mkdir -p ' + require('os').homedir() + '/electroneum'
-        cmd.get(mkdir, function(err, data, stderr) {
-          if (!err) {
-            self.installSteps[0].success = true;
-            self.checkComplete()
-            console.log('ElectroVault Install: Created folder at: ' + require("os").homedir() + '/electroneum')
-          } else {
-            self.installSteps[0].pending = false;
-            self.installSteps[0].error = true;
-            console.log('error', err);
-          }
-        })
-      } else if (require('os').platform() == 'win32') {
-        const path = require('path');
-        const targetDir = require('os').homedir() + '\\electroneum';
-        const sep = path.sep;
-        const initDir = path.isAbsolute(targetDir) ? sep : '';
-        targetDir.split(sep).reduce((parentDir, childDir) => {
-          const curDir = path.resolve(parentDir, childDir);
-          if (!fs.existsSync(curDir)) {
-            fs.mkdirSync(curDir)
-          }
-          console.log('ElectroVault Install: Created folder at: ' + targetDir);
-          self.installSteps[0].success = true;
-          return curDir
-        }, initDir)
+      if (!fs.existsSync(electroDir)) {
+        console.log("Creating directory...");
+        fs.mkdirSync(electroDir);
+        self.installSteps[0].success = true;
+        self.checkComplete();
+      } else if (fs.existsSync(electroDir)) {
+        console.log("Skipping directory...");
+        self.installSteps[0].success = true;
+      } else {
+        alert('Please remove the current electrovault directory located at: "' + electroDir + '" and try again.')
+        self.installSteps[0].pending = false;
+        self.installSteps[0].error = true;
       }
 
-      self.installSteps[1].pending = true;
-      var platform = require('os').platform();
-    },
-
-    mounted: function() {
-      if (store.get('setupComplete') == true) {
-        this.$router.push('/wallet')
+      // Download Electroneum daemon and requisite files
+      if (!fs.existsSync(coreDir)) {
+        if (arch == 'x64' && self.installSteps[0].error != true) {
+          var windl = self.downloadsWindows[0].url;
+          console.log("Starting download...");
+          self.download(windl, coreDir);
+          self.downloadsWindows[0].finished = true;
+        } else if (arch == 'x86' || arch == 'x32' && self.installSteps[0].error != true) {
+          var windl = self.downloadsWindows[1].url;
+          console.log("Starting download...");
+          self.download(windl, coreDir);
+          self.downloadsWindows[1].finished = true;
+        }
+      } else {
+        console.log("Skipping download...")
+        self.installSteps[1].error = false;
+        self.installSteps[1].pending = false;
+        self.installSteps[1].success = true;
+        self.checkComplete();
       }
+
+      // Unzip Electroneum daemon and files
+      console.log("Unzipping...")
+      self.installSteps[2].pending = true;
+      fs.createReadStream(coreDir).pipe(unzip.Extract({
+        path: electroDir
+      }));
+
+      self.installSteps[2].success = true;
+      self.checkComplete();
+
     }
+  },
+  mounted: function() {
+    var self = this;
+    this.startInstall()
   }
 }
 </script>
