@@ -34,7 +34,7 @@ import SystemInformation from './LandingPage/SystemInformation'
 
 var fs = require('fs');
 var path = require('path');
-var cmd = require('node-cmd');
+//var cmd = require('node-cmd');
 var store = require('store');
 var request = require('request');
 var unzip = require('unzip');
