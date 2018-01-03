@@ -104,6 +104,12 @@ export default {
       this.$electron.shell.openExternal(link);
     },
 
+    unzipFile(file, directory) {
+      fs.createReadStream(file).pipe(unzip.Extract({
+        path: directory
+      }));
+    },
+
     // Closes Electron Application
     close() {
       this.w.close();
@@ -143,6 +149,7 @@ export default {
       var coreDir = require('os').homedir() + '\\Desktop\\electrovault_wallet\\core.zip';
       var walletsDir = electroDir + '\\wallets';
       var arch = require('os').arch();
+      var isDownloaded = false;
 
       // Create Electroneum directory
       self.installSteps[0].pending = true;
@@ -181,32 +188,40 @@ export default {
           console.log("Starting download...");
           self.download(windl, coreDir);
           self.downloadsWindows[0].finished = true;
+          isDownloaded = true;
         } else if (arch == 'x86' || arch == 'x32' && self.installSteps[0].error != true) {
           var windl = self.downloadsWindows[1].url;
           console.log("Starting download...");
           self.download(windl, coreDir);
           self.downloadsWindows[1].finished = true;
+          isDownloaded = true;
         }
       } else {
         console.log("Skipping download...")
         self.installSteps[1].error = false;
         self.installSteps[1].pending = false;
         self.installSteps[1].success = true;
+        isDownload = true;
         self.checkComplete();
       }
 
       // Unzip Electroneum daemon and files
       // Not working when the daemon is downloaded
-      var stepOne = self.installSteps[1].success;
-      if (stepOne == true) {
+      if (isDownloaded) {
         console.log("Unzipping...")
+        self.unzipFile(coreDir, electroDir);
         console.log("Target :: " + electroDir)
         self.installSteps[2].pending = true;
-        fs.createReadStream(coreDir).pipe(unzip.Extract({
-          path: electroDir
-        }));
         self.installSteps[2].success = true;
         self.checkComplete();
+      } else {
+        self.installSteps[2].pending = false;
+        self.installSteps[2].error = true;
+      }
+
+      // Last installSteps
+      if (self.installSteps[2] == true) {
+        alert('Last step is not complete');
       }
     }
   },
