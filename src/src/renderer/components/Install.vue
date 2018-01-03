@@ -196,6 +196,7 @@ export default {
       }
 
       // Unzip Electroneum daemon and files
+      // Not working when the daemon is downloaded
       var stepOne = self.installSteps[1].success;
       if (stepOne == true) {
         console.log("Unzipping...")
